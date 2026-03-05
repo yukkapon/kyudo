@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>弓道マスター Ultimate</title>
+<title>弓道マスター Ultimate+</title>
 
 <style>
 
@@ -29,29 +29,14 @@ color:white;
 padding:8px;
 display:flex;
 justify-content:space-around;
-}
-
-#title{
-position:absolute;
-top:40%;
-left:50%;
-transform:translate(-50%,-50%);
-background:white;
-padding:30px;
-border-radius:10px;
-}
-
-button{
-padding:10px 20px;
-margin:10px;
-font-size:16px;
+font-size:14px;
 }
 
 #message{
 position:absolute;
 top:90px;
 width:100%;
-font-size:30px;
+font-size:28px;
 color:white;
 text-shadow:2px 2px 5px black;
 pointer-events:none;
@@ -65,13 +50,8 @@ pointer-events:none;
 <div id="ui">
 <div id="score">Score:0</div>
 <div id="stage">Stage:1</div>
-<div id="mode">Normal</div>
-</div>
-
-<div id="title">
-<h1>弓道マスター</h1>
-<button onclick="startGame()">スタート</button>
-<button onclick="showRanking()">ランキング</button>
+<div id="angle">Angle:-45</div>
+<div id="power">Power:0</div>
 </div>
 
 <div id="message"></div>
@@ -83,7 +63,6 @@ pointer-events:none;
 const canvas=document.getElementById("game")
 const ctx=canvas.getContext("2d")
 
-let game=false
 let score=0
 let stage=1
 
@@ -92,12 +71,7 @@ let power=0
 let angle=-45
 let startX=0
 
-let slowMode=false
-
-let arrowType=0
-const arrowNames=["Normal","Fast","Heavy"]
-
-let sakura=[]
+let wind=0
 
 let arrow={
 x:80,
@@ -114,78 +88,27 @@ r:40,
 vx:2
 }
 
-function startGame(){
-
-document.getElementById("title").style.display="none"
-
-score=0
-stage=1
-game=true
-
+function newWind(){
+wind=(Math.random()*0.4-0.2)*stage
 }
 
-function playSound(freq){
+newWind()
 
-let ctxAudio=new AudioContext()
-let osc=ctxAudio.createOscillator()
+function drawBow(){
 
-osc.frequency.value=freq
-osc.connect(ctxAudio.destination)
+ctx.save()
 
-osc.start()
+ctx.translate(80,560)
+ctx.rotate(angle*Math.PI/180)
 
-setTimeout(()=>osc.stop(),100)
-
-}
-
-function spawnSakura(){
-
-if(Math.random()<0.3){
-
-sakura.push({
-x:Math.random()*400,
-y:-10,
-vy:1+Math.random()*2
-})
-
-}
-
-}
-
-function drawSakura(){
-
-ctx.fillStyle="pink"
-
-sakura.forEach(p=>{
-
-p.y+=p.vy
+ctx.strokeStyle="#4b2e1e"
+ctx.lineWidth=6
 
 ctx.beginPath()
-ctx.arc(p.x,p.y,3,0,Math.PI*2)
-ctx.fill()
+ctx.arc(0,0,60,Math.PI/2,Math.PI*1.5)
+ctx.stroke()
 
-})
-
-sakura=sakura.filter(p=>p.y<650)
-
-}
-
-function drawTarget(){
-
-ctx.fillStyle="white"
-ctx.beginPath()
-ctx.arc(target.x,target.y,target.r,0,Math.PI*2)
-ctx.fill()
-
-ctx.fillStyle="red"
-ctx.beginPath()
-ctx.arc(target.x,target.y,target.r*0.6,0,Math.PI*2)
-ctx.fill()
-
-ctx.fillStyle="yellow"
-ctx.beginPath()
-ctx.arc(target.x,target.y,target.r*0.3,0,Math.PI*2)
-ctx.fill()
+ctx.restore()
 
 }
 
@@ -202,24 +125,72 @@ ctx.rotate(angle*Math.PI/180)
 }
 
 ctx.strokeStyle="black"
-ctx.lineWidth=4
+ctx.lineWidth=3
 
 ctx.beginPath()
 ctx.moveTo(0,0)
-ctx.lineTo(-35,0)
+ctx.lineTo(-40,0)
 ctx.stroke()
 
 ctx.restore()
 
 }
 
+function drawTarget(){
+
+ctx.fillStyle="white"
+ctx.beginPath()
+ctx.arc(target.x,target.y,target.r,0,Math.PI*2)
+ctx.fill()
+
+ctx.fillStyle="black"
+ctx.beginPath()
+ctx.arc(target.x,target.y,target.r*0.7,0,Math.PI*2)
+ctx.fill()
+
+ctx.fillStyle="white"
+ctx.beginPath()
+ctx.arc(target.x,target.y,target.r*0.4,0,Math.PI*2)
+ctx.fill()
+
+ctx.fillStyle="black"
+ctx.beginPath()
+ctx.arc(target.x,target.y,target.r*0.2,0,Math.PI*2)
+ctx.fill()
+
+}
+
+function drawGuide(){
+
+if(!charging) return
+
+ctx.fillStyle="rgba(0,0,0,0.3)"
+
+let simX=arrow.x
+let simY=arrow.y
+
+let rad=angle*Math.PI/180
+
+let vx=Math.cos(rad)*power
+let vy=Math.sin(rad)*power
+
+for(let i=0;i<40;i++){
+
+simX+=vx
+simY+=vy
+
+vy+=0.15
+vx+=wind*0.01
+
+ctx.beginPath()
+ctx.arc(simX,simY,2,0,Math.PI*2)
+ctx.fill()
+
+}
+
+}
+
 function update(){
-
-if(!game) return
-
-spawnSakura()
-
-let speed=slowMode?0.5:1
 
 if(charging){
 
@@ -230,14 +201,15 @@ if(power>20) power=20
 
 if(arrow.shot){
 
-arrow.x+=arrow.vx*speed
-arrow.y+=arrow.vy*speed
+arrow.x+=arrow.vx
+arrow.y+=arrow.vy
 
-arrow.vy+=0.15*speed
+arrow.vy+=0.15
+arrow.vx+=wind*0.01
 
 }
 
-target.x+=target.vx*speed
+target.x+=target.vx
 
 if(target.x>380||target.x<300){
 target.vx*=-1
@@ -251,8 +223,6 @@ if(dist<target.r && arrow.shot){
 
 score+=100
 
-playSound(500)
-
 showMessage("HIT!")
 
 stage++
@@ -260,13 +230,7 @@ stage++
 document.getElementById("stage").innerText="Stage:"+stage
 document.getElementById("score").innerText="Score:"+score
 
-if(stage%5==0){
-
-target.r=60
-target.vx=4
-showMessage("BOSS TARGET!")
-
-}
+newWind()
 
 resetArrow()
 
@@ -295,17 +259,11 @@ power=0
 
 function drawBackground(){
 
-if(stage%2==0){
-
-ctx.fillStyle="#0a1c3a"
-ctx.fillRect(0,0,400,650)
-
-}else{
-
 ctx.fillStyle="#cfe8ff"
 ctx.fillRect(0,0,400,650)
 
-}
+ctx.fillStyle="#8b5a2b"
+ctx.fillRect(0,580,400,70)
 
 }
 
@@ -314,8 +272,12 @@ function draw(){
 drawBackground()
 
 drawTarget()
+drawBow()
 drawArrow()
-drawSakura()
+drawGuide()
+
+ctx.fillStyle="black"
+ctx.fillText("Wind:"+wind.toFixed(2),10,50)
 
 }
 
@@ -323,6 +285,9 @@ function loop(){
 
 update()
 draw()
+
+document.getElementById("angle").innerText="Angle:"+Math.round(angle)
+document.getElementById("power").innerText="Power:"+power.toFixed(1)
 
 requestAnimationFrame(loop)
 
@@ -335,28 +300,6 @@ let m=document.getElementById("message")
 m.innerText=text
 
 setTimeout(()=>m.innerText="",1000)
-
-}
-
-function saveScore(){
-
-let ranking=JSON.parse(localStorage.getItem("kyudoRank")||"[]")
-
-ranking.push(score)
-
-ranking.sort((a,b)=>b-a)
-
-ranking=ranking.slice(0,5)
-
-localStorage.setItem("kyudoRank",JSON.stringify(ranking))
-
-}
-
-function showRanking(){
-
-let ranking=JSON.parse(localStorage.getItem("kyudoRank")||"[]")
-
-alert("ランキング\n"+ranking.join("\n"))
 
 }
 
@@ -379,6 +322,9 @@ let dx=e.clientX-startX
 
 angle=-45+dx*0.25
 
+if(angle<-80) angle=-80
+if(angle>-5) angle=-5
+
 }
 
 })
@@ -391,32 +337,12 @@ charging=false
 
 arrow.shot=true
 
-playSound(200)
-
 let rad=angle*Math.PI/180
 
-let speed=power
-
-if(arrowType==1) speed*=1.3
-if(arrowType==2) speed*=0.8
-
-arrow.vx=Math.cos(rad)*speed
-arrow.vy=Math.sin(rad)*speed
+arrow.vx=Math.cos(rad)*power
+arrow.vy=Math.sin(rad)*power
 
 }
-
-})
-
-document.addEventListener("keydown",(e)=>{
-
-if(e.key=="1") arrowType=0
-if(e.key=="2") arrowType=1
-if(e.key=="3") arrowType=2
-
-if(e.key=="s") slowMode=!slowMode
-
-document.getElementById("mode").innerText=
-slowMode?"Focus":"Normal"
 
 })
 
