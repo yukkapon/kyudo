@@ -5,195 +5,268 @@
 <title>弓道ゲーム</title>
 
 <style>
+
 body{
 margin:0;
-background:#e8f4ff;
 font-family:sans-serif;
+background:#f6efe3;
 text-align:center;
 }
 
-h1{
-margin:10px;
+#ui{
+background:#3b2f2f;
+color:white;
+padding:10px;
+font-size:18px;
 }
 
-#game{
-background:#cfe8ff;
+canvas{
+background:linear-gradient(#dfefff,#b8d4a8);
 display:block;
 margin:auto;
 touch-action:none;
 }
 
-#score{
-font-size:20px;
-margin:10px;
+#info{
+padding:8px;
+background:#fff8dc;
+font-size:14px;
 }
-</style>
 
+</style>
 </head>
 
 <body>
 
-<h1>弓道ゲーム 🎯</h1>
-<div id="score">Score: 0</div>
+<div id="ui">
+🏹 弓道ゲーム  
+<span id="score">Score:0</span>
+</div>
 
-<canvas id="game" width="400" height="500"></canvas>
+<canvas id="game" width="400" height="600"></canvas>
+
+<div id="info">
+画面を押してパワーをためる / 左右に動かして角度調整
+</div>
 
 <script>
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas = document.getElementById("game")
+const ctx = canvas.getContext("2d")
 
-let power = 0;
-let charging = false;
+let score = 0
 
-let arrow = {
-x:50,
-y:400,
+let charging=false
+let power=0
+let angle=-45
+
+let startX=0
+
+let arrow={
+x:80,
+y:500,
 vx:0,
 vy:0,
 shot:false
-};
+}
 
-let target = {
-x:320,
+let target={
+x:340,
 y:200,
-r:40
-};
+r:45
+}
 
-let score = 0;
+function drawDojo(){
 
-function drawTarget(){
+ctx.fillStyle="#8b5a2b"
+ctx.fillRect(0,520,400,80)
 
-ctx.beginPath();
-ctx.fillStyle="white";
-ctx.arc(target.x,target.y,target.r,0,Math.PI*2);
-ctx.fill();
-
-ctx.beginPath();
-ctx.fillStyle="red";
-ctx.arc(target.x,target.y,target.r*0.6,0,Math.PI*2);
-ctx.fill();
-
-ctx.beginPath();
-ctx.fillStyle="yellow";
-ctx.arc(target.x,target.y,target.r*0.3,0,Math.PI*2);
-ctx.fill();
+ctx.fillStyle="#6b4423"
+ctx.fillRect(0,510,400,10)
 
 }
 
-function drawArrow(){
+function drawTarget(){
 
-ctx.strokeStyle="black";
-ctx.lineWidth=4;
+ctx.fillStyle="white"
+ctx.beginPath()
+ctx.arc(target.x,target.y,target.r,0,Math.PI*2)
+ctx.fill()
 
-ctx.beginPath();
-ctx.moveTo(arrow.x,arrow.y);
-ctx.lineTo(arrow.x-20,arrow.y);
-ctx.stroke();
+ctx.fillStyle="red"
+ctx.beginPath()
+ctx.arc(target.x,target.y,target.r*0.65,0,Math.PI*2)
+ctx.fill()
+
+ctx.fillStyle="yellow"
+ctx.beginPath()
+ctx.arc(target.x,target.y,target.r*0.3,0,Math.PI*2)
+ctx.fill()
 
 }
 
 function drawBow(){
 
-ctx.strokeStyle="brown";
-ctx.lineWidth=6;
+ctx.save()
 
-ctx.beginPath();
-ctx.arc(50,400,40,Math.PI/2,Math.PI*1.5);
-ctx.stroke();
+ctx.translate(80,500)
+ctx.rotate(angle*Math.PI/180)
+
+ctx.strokeStyle="#4b2e1e"
+ctx.lineWidth=6
+ctx.beginPath()
+ctx.arc(0,0,50,Math.PI/2,Math.PI*1.5)
+ctx.stroke()
+
+ctx.restore()
+
+}
+
+function drawArrow(){
+
+ctx.save()
+
+ctx.translate(arrow.x,arrow.y)
+
+if(arrow.shot){
+ctx.rotate(Math.atan2(arrow.vy,arrow.vx))
+}else{
+ctx.rotate(angle*Math.PI/180)
+}
+
+ctx.strokeStyle="black"
+ctx.lineWidth=4
+
+ctx.beginPath()
+ctx.moveTo(0,0)
+ctx.lineTo(-30,0)
+ctx.stroke()
+
+ctx.restore()
 
 }
 
 function update(){
 
 if(charging){
-power+=0.3;
-if(power>15) power=15;
+power+=0.2
+if(power>18) power=18
 }
 
 if(arrow.shot){
 
-arrow.x+=arrow.vx;
-arrow.y+=arrow.vy;
+arrow.x+=arrow.vx
+arrow.y+=arrow.vy
+
+arrow.vy+=0.15
 
 }
 
-let dx = arrow.x-target.x;
-let dy = arrow.y-target.y;
-let dist = Math.sqrt(dx*dx+dy*dy);
+let dx=arrow.x-target.x
+let dy=arrow.y-target.y
+let dist=Math.sqrt(dx*dx+dy*dy)
 
-if(dist < target.r && arrow.shot){
+if(dist<target.r && arrow.shot){
 
-let add = Math.floor((target.r-dist)*2);
-score += add;
+let add=Math.floor((target.r-dist)*3)
 
-document.getElementById("score").innerText="Score: "+score;
+score+=add
 
-resetArrow();
+document.getElementById("score").innerText="Score:"+score
+
+resetArrow()
 
 }
 
-if(arrow.x>canvas.width || arrow.y<0){
-resetArrow();
+if(arrow.x>canvas.width||arrow.y>canvas.height||arrow.y<0){
+resetArrow()
 }
 
 }
 
 function resetArrow(){
 
-arrow.x=50;
-arrow.y=400;
-arrow.vx=0;
-arrow.vy=0;
-arrow.shot=false;
-power=0;
+arrow.x=80
+arrow.y=500
+arrow.vx=0
+arrow.vy=0
+arrow.shot=false
+power=0
+
+}
+
+function drawUI(){
+
+ctx.fillStyle="black"
+ctx.fillText("Power:"+power.toFixed(1),10,20)
+ctx.fillText("Angle:"+Math.round(angle),10,40)
 
 }
 
 function draw(){
 
-ctx.clearRect(0,0,canvas.width,canvas.height);
+ctx.clearRect(0,0,canvas.width,canvas.height)
 
-drawTarget();
-drawBow();
-drawArrow();
-
-ctx.fillStyle="black";
-ctx.fillText("Power: "+power.toFixed(1),10,20);
+drawDojo()
+drawTarget()
+drawBow()
+drawArrow()
+drawUI()
 
 }
 
 function loop(){
 
-update();
-draw();
-requestAnimationFrame(loop);
+update()
+draw()
+requestAnimationFrame(loop)
 
 }
 
-canvas.addEventListener("pointerdown",()=>{
+canvas.addEventListener("pointerdown",(e)=>{
 
 if(!arrow.shot){
-charging=true;
+
+charging=true
+startX=e.clientX
+
 }
 
-});
+})
+
+canvas.addEventListener("pointermove",(e)=>{
+
+if(charging){
+
+let dx=e.clientX-startX
+
+angle=-45 + dx*0.2
+
+if(angle<-80) angle=-80
+if(angle>-10) angle=-10
+
+}
+
+})
 
 canvas.addEventListener("pointerup",()=>{
 
 if(charging){
 
-charging=false;
+charging=false
 
-arrow.shot=true;
-arrow.vx=power*1.5;
-arrow.vy=-power*0.5;
+arrow.shot=true
+
+let rad=angle*Math.PI/180
+
+arrow.vx=Math.cos(rad)*power
+arrow.vy=Math.sin(rad)*power
 
 }
 
-});
+})
 
-loop();
+loop()
 
 </script>
 
