@@ -2,35 +2,48 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>弓道ゲーム</title>
+<title>弓道マスター</title>
 
 <style>
 
 body{
 margin:0;
+background:#efe7d6;
 font-family:sans-serif;
-background:#f6efe3;
 text-align:center;
 }
 
-#ui{
-background:#3b2f2f;
+#topUI{
+background:#2c1b12;
 color:white;
 padding:10px;
+display:flex;
+justify-content:space-around;
 font-size:18px;
 }
 
 canvas{
-background:linear-gradient(#dfefff,#b8d4a8);
 display:block;
 margin:auto;
+background:linear-gradient(#cfe8ff,#9ec27f);
 touch-action:none;
 }
 
-#info{
+#message{
+position:absolute;
+top:80px;
+width:100%;
+font-size:32px;
+font-weight:bold;
+color:#fff;
+text-shadow:2px 2px 5px black;
+pointer-events:none;
+}
+
+#guide{
+font-size:14px;
 padding:8px;
 background:#fff8dc;
-font-size:14px;
 }
 
 </style>
@@ -38,23 +51,29 @@ font-size:14px;
 
 <body>
 
-<div id="ui">
-🏹 弓道ゲーム  
-<span id="score">Score:0</span>
+<div id="topUI">
+<div id="score">Score:0</div>
+<div id="level">Level:1</div>
+<div id="wind">Wind:0</div>
 </div>
 
-<canvas id="game" width="400" height="600"></canvas>
+<div id="message"></div>
 
-<div id="info">
-画面を押してパワーをためる / 左右に動かして角度調整
+<canvas id="game" width="400" height="650"></canvas>
+
+<div id="guide">
+長押しでパワー / 左右スワイプで角度調整
 </div>
 
 <script>
 
-const canvas = document.getElementById("game")
-const ctx = canvas.getContext("2d")
+const canvas=document.getElementById("game")
+const ctx=canvas.getContext("2d")
 
-let score = 0
+let score=0
+let level=1
+
+let wind=0
 
 let charging=false
 let power=0
@@ -64,7 +83,7 @@ let startX=0
 
 let arrow={
 x:80,
-y:500,
+y:550,
 vx:0,
 vy:0,
 shot:false
@@ -73,16 +92,38 @@ shot:false
 let target={
 x:340,
 y:200,
-r:45
+r:40
+}
+
+function newWind(){
+
+wind=(Math.random()*0.4-0.2)*level
+
+document.getElementById("wind").innerText=
+"Wind:"+wind.toFixed(2)
+
+}
+
+newWind()
+
+function showMessage(text){
+
+const m=document.getElementById("message")
+m.innerText=text
+
+setTimeout(()=>{
+m.innerText=""
+},1200)
+
 }
 
 function drawDojo(){
 
 ctx.fillStyle="#8b5a2b"
-ctx.fillRect(0,520,400,80)
+ctx.fillRect(0,580,400,70)
 
-ctx.fillStyle="#6b4423"
-ctx.fillRect(0,510,400,10)
+ctx.fillStyle="#5a3a20"
+ctx.fillRect(0,570,400,10)
 
 }
 
@@ -109,11 +150,12 @@ function drawBow(){
 
 ctx.save()
 
-ctx.translate(80,500)
+ctx.translate(80,550)
 ctx.rotate(angle*Math.PI/180)
 
 ctx.strokeStyle="#4b2e1e"
 ctx.lineWidth=6
+
 ctx.beginPath()
 ctx.arc(0,0,50,Math.PI/2,Math.PI*1.5)
 ctx.stroke()
@@ -139,18 +181,50 @@ ctx.lineWidth=4
 
 ctx.beginPath()
 ctx.moveTo(0,0)
-ctx.lineTo(-30,0)
+ctx.lineTo(-35,0)
 ctx.stroke()
 
 ctx.restore()
 
 }
 
+function drawGuide(){
+
+if(!charging) return
+
+ctx.strokeStyle="rgba(0,0,0,0.3)"
+
+let simX=arrow.x
+let simY=arrow.y
+
+let rad=angle*Math.PI/180
+
+let vx=Math.cos(rad)*power
+let vy=Math.sin(rad)*power
+
+for(let i=0;i<40;i++){
+
+simX+=vx
+simY+=vy
+
+vy+=0.15
+vx+=wind*0.01
+
+ctx.beginPath()
+ctx.arc(simX,simY,2,0,Math.PI*2)
+ctx.stroke()
+
+}
+
+}
+
 function update(){
 
 if(charging){
-power+=0.2
-if(power>18) power=18
+
+power+=0.25
+if(power>20) power=20
+
 }
 
 if(arrow.shot){
@@ -159,26 +233,59 @@ arrow.x+=arrow.vx
 arrow.y+=arrow.vy
 
 arrow.vy+=0.15
+arrow.vx+=wind*0.01
 
 }
 
 let dx=arrow.x-target.x
 let dy=arrow.y-target.y
+
 let dist=Math.sqrt(dx*dx+dy*dy)
 
 if(dist<target.r && arrow.shot){
 
-let add=Math.floor((target.r-dist)*3)
+let add
+let text
+
+if(dist<target.r*0.3){
+add=100
+text="EXCELLENT!"
+}
+else if(dist<target.r*0.6){
+add=60
+text="GOOD!"
+}
+else{
+add=30
+text="HIT!"
+}
 
 score+=add
 
-document.getElementById("score").innerText="Score:"+score
+document.getElementById("score").innerText=
+"Score:"+score
+
+showMessage(text)
+
+level++
+
+document.getElementById("level").innerText=
+"Level:"+level
+
+target.x=320+Math.random()*40
+target.y=120+Math.random()*200
+
+newWind()
 
 resetArrow()
 
 }
 
-if(arrow.x>canvas.width||arrow.y>canvas.height||arrow.y<0){
+if(
+arrow.x>canvas.width||
+arrow.y>canvas.height||
+arrow.y<0
+){
 resetArrow()
 }
 
@@ -187,7 +294,7 @@ resetArrow()
 function resetArrow(){
 
 arrow.x=80
-arrow.y=500
+arrow.y=550
 arrow.vx=0
 arrow.vy=0
 arrow.shot=false
@@ -211,6 +318,7 @@ drawDojo()
 drawTarget()
 drawBow()
 drawArrow()
+drawGuide()
 drawUI()
 
 }
@@ -219,6 +327,7 @@ function loop(){
 
 update()
 draw()
+
 requestAnimationFrame(loop)
 
 }
@@ -240,10 +349,10 @@ if(charging){
 
 let dx=e.clientX-startX
 
-angle=-45 + dx*0.2
+angle=-45 + dx*0.25
 
 if(angle<-80) angle=-80
-if(angle>-10) angle=-10
+if(angle>-5) angle=-5
 
 }
 
