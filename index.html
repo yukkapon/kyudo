@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>弓道ゲーム</title>
+
+<style>
+body{
+margin:0;
+background:#e8f4ff;
+font-family:sans-serif;
+text-align:center;
+}
+
+h1{
+margin:10px;
+}
+
+#game{
+background:#cfe8ff;
+display:block;
+margin:auto;
+touch-action:none;
+}
+
+#score{
+font-size:20px;
+margin:10px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>弓道ゲーム 🎯</h1>
+<div id="score">Score: 0</div>
+
+<canvas id="game" width="400" height="500"></canvas>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let power = 0;
+let charging = false;
+
+let arrow = {
+x:50,
+y:400,
+vx:0,
+vy:0,
+shot:false
+};
+
+let target = {
+x:320,
+y:200,
+r:40
+};
+
+let score = 0;
+
+function drawTarget(){
+
+ctx.beginPath();
+ctx.fillStyle="white";
+ctx.arc(target.x,target.y,target.r,0,Math.PI*2);
+ctx.fill();
+
+ctx.beginPath();
+ctx.fillStyle="red";
+ctx.arc(target.x,target.y,target.r*0.6,0,Math.PI*2);
+ctx.fill();
+
+ctx.beginPath();
+ctx.fillStyle="yellow";
+ctx.arc(target.x,target.y,target.r*0.3,0,Math.PI*2);
+ctx.fill();
+
+}
+
+function drawArrow(){
+
+ctx.strokeStyle="black";
+ctx.lineWidth=4;
+
+ctx.beginPath();
+ctx.moveTo(arrow.x,arrow.y);
+ctx.lineTo(arrow.x-20,arrow.y);
+ctx.stroke();
+
+}
+
+function drawBow(){
+
+ctx.strokeStyle="brown";
+ctx.lineWidth=6;
+
+ctx.beginPath();
+ctx.arc(50,400,40,Math.PI/2,Math.PI*1.5);
+ctx.stroke();
+
+}
+
+function update(){
+
+if(charging){
+power+=0.3;
+if(power>15) power=15;
+}
+
+if(arrow.shot){
+
+arrow.x+=arrow.vx;
+arrow.y+=arrow.vy;
+
+}
+
+let dx = arrow.x-target.x;
+let dy = arrow.y-target.y;
+let dist = Math.sqrt(dx*dx+dy*dy);
+
+if(dist < target.r && arrow.shot){
+
+let add = Math.floor((target.r-dist)*2);
+score += add;
+
+document.getElementById("score").innerText="Score: "+score;
+
+resetArrow();
+
+}
+
+if(arrow.x>canvas.width || arrow.y<0){
+resetArrow();
+}
+
+}
+
+function resetArrow(){
+
+arrow.x=50;
+arrow.y=400;
+arrow.vx=0;
+arrow.vy=0;
+arrow.shot=false;
+power=0;
+
+}
+
+function draw(){
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+drawTarget();
+drawBow();
+drawArrow();
+
+ctx.fillStyle="black";
+ctx.fillText("Power: "+power.toFixed(1),10,20);
+
+}
+
+function loop(){
+
+update();
+draw();
+requestAnimationFrame(loop);
+
+}
+
+canvas.addEventListener("pointerdown",()=>{
+
+if(!arrow.shot){
+charging=true;
+}
+
+});
+
+canvas.addEventListener("pointerup",()=>{
+
+if(charging){
+
+charging=false;
+
+arrow.shot=true;
+arrow.vx=power*1.5;
+arrow.vy=-power*0.5;
+
+}
+
+});
+
+loop();
+
+</script>
+
+</body>
+</html>
